@@ -1,0 +1,91 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace RFExplorerNET.RFExplorerCommunicator
+{
+    public enum eExtFlashDataType
+    {
+        //Some Reserved values for future data sweep versions and to make easier use ranges for < or >
+        FLASH_DATA_TYPE_SWEEP_v1 = 0,
+        FLASH_DATA_TYPE_SWEEP_IGNORE = 14,
+        FLASH_DATA_TYPE_SWEEP_START = 15,
+        FLASH_DATA_TYPE_CONFIG = 20,
+        FLASH_DATA_TYPE_BITMAP = 100,
+        FLASH_DATA_TYPE_API,
+        FLASH_DATA_TYPE_HELP,
+        FLASH_DATA_TYPE_EMPTY = 0xff
+    };
+
+    /// <summary>
+    /// This class represents a basic block of memory, up to 4096 bytes length, with an address within the available memory space, 
+    /// a total length and a raw memory container
+    /// </summary>
+    public class RFEMemoryBlock
+    {
+        public const UInt16 MAX_BLOCK_SIZE = 4096;
+
+        /// <summary>
+        /// Memory container, values out of range are initialized to 0xFF
+        /// </summary>
+        byte[] m_arrBytes = new byte[MAX_BLOCK_SIZE];
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+        public byte[] DataBytes
+        {
+            get { return m_arrBytes; }
+        }
+
+        /// <summary>
+        /// Memory type available in RFE devices
+        /// </summary>
+        public enum eMemoryType
+        {
+            MEM_FLASH = 0,
+            MEM_RAM1,
+            MEM_RAM2,
+            MEM_FLASH_MB = 0x40,
+            MEM_FLASH_EXP = 0x80
+        }
+
+        private eMemoryType m_eType;
+        /// <summary>
+        /// Memory type available in RFE devices
+        /// </summary>
+        public eMemoryType MemoryType
+        {
+            get { return m_eType; }
+            set { m_eType = value; }
+        }
+
+        /// <summary>
+        /// Valid address within the memory space this object is defined. For instance the external FLASH has a range of 2MB
+        /// </summary>
+        UInt32 m_nAddress = 0;
+        public UInt32 Address
+        {
+            get { return m_nAddress; }
+            set { m_nAddress = value; }
+        }
+
+        /// <summary>
+        /// Size of the block in bytes, being MAX_BLOCK_SIZE the maximum value
+        /// </summary>
+        UInt16 m_nSize = 0;
+        public UInt16 Size
+        {
+            get { return m_nSize; }
+            set { m_nSize = value; }
+        }
+
+        public RFEMemoryBlock()
+        {
+            m_eType = eMemoryType.MEM_FLASH;
+            for (int nInd = 0; nInd < MAX_BLOCK_SIZE; nInd++)
+            {
+                m_arrBytes[nInd] = 0xff; //initialize with same values to imitate internal memory status
+            }
+        }
+    }
+}

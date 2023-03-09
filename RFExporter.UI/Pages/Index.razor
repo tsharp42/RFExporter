@@ -1,0 +1,152 @@
+﻿@page "/"
+@using RFExporter.UI.Data;
+
+@inject ScanningService scanningService;
+
+<nav class="navbar navbar-dark bg-dark mb-2">
+    <div class="container-fluid justify-content-start">
+
+        <div class="d-flex">
+            @if(scanningService.IsConnected)
+            {
+                <button @onclick="scanningService.Disconnect" class="btn btn-outline-danger me-2 mb-2" type="button">Disconnect</button>
+            }else{
+                <button @onclick="scanningService.Connect" class="btn btn-outline-success me-2 mb-2" type="button">Connect</button>
+            }
+
+            @if(scanningService.IsConnected)
+            {
+                @if(scanningService.IsScanning)
+                {
+                    <button @onclick="scanningService.Stop" class="btn btn-danger me-2 mb-2" type="button">Stop Scan</button>
+                }
+                else
+                {
+                    <button @onclick="scanningService.Start" class="btn btn-success me-2 mb-2" type="button">Start Scan</button>
+                }
+            }
+ 
+
+            <button class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
+        </div>
+
+        <div class="d-flex" style="width: 100%">
+            <div class="input-group me-2" style="flex-basis:25%">
+                <span class="input-group-text">Port</span>
+                <select class="form-select" aria-label="Serial Port Selection">
+                    @foreach(var port in AvailablePorts)
+                    {
+                        <option value="@port">@port</option>
+                    }
+                </select>
+            </div>
+
+            <div class="input-group me-2 " style="flex-basis:25%">
+                <span class="input-group-text">Start</span>
+                <input type="text" class="form-control" placeholder="Start Frequency" aria-label="Start Frequency" aria-describedby="basic-addon1" value="500.000">
+                <span class="input-group-text" id="basic-addon1">MHz</span>
+            </div>
+
+            <div class="input-group me-2" style="flex-basis:25%">
+                <span class="input-group-text">End</span>
+                <input type="text" class="form-control" placeholder="End Frequency" aria-label="End Frequency" aria-describedby="basic-addon1" value="880.000">
+                <span class="input-group-text" id="basic-addon1">MHz</span>
+            </div>
+
+            <div class="input-group" style="flex-basis:25%">
+                <span class="input-group-text">Width</span>
+                <input type="text" class="form-control" placeholder="Width" aria-label="Width" aria-describedby="basic-addon1" value="2.000">
+                <span class="input-group-text" id="basic-addon1">MHz</span>
+            </div>
+
+            
+        </div>
+    
+      </div>
+</nav>
+
+ <main role="main">
+    <div class="container-fluid">
+
+        <div class="row mb-2">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        Chart
+                    </div>
+                    <div class="card-body">
+                        Scanning chart will go here
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        Log
+                    </div>
+                    <div class="card-body">
+                        <pre class="log-output">
+                            @foreach(var logline in scanningService.Log)
+                            {
+@logline @Environment.NewLine                                
+                            }
+                        </pre>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        Device
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Model</th>
+                                    <td>@scanningService.DeviceModel</td>
+                                </tr>
+                                <tr>
+                                    <th>Firmware</th>
+                                    <td>@scanningService.DeviceFirmware</td>
+                                </tr>
+                                <tr>
+                                    <th>Serial</th>
+                                    <td>@scanningService.DeviceSerialNumber</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+
+
+@code {
+    private string[] AvailablePorts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AvailablePorts = await scanningService.GetAvailablePorts();
+    }
+
+    // Timer to refresh data on this page every second
+    System.Threading.Timer? timer;
+    protected override void OnInitialized()
+    {
+        timer = new System.Threading.Timer(async _ =>  // async void
+        {
+
+            InvokeAsync(() => StateHasChanged());
+
+        }, null, 0, 100);
+    }
+
+}
