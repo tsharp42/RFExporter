@@ -23,7 +23,7 @@ namespace RFExporter.UI.Data
 
         private bool IsReady = false;
         private bool collectingData = false;
-        private int sampleCount = 10;
+        private int sampleCount = 2;
 
         public List<ScanBlock> ScanBlocks = new List<ScanBlock>();
         private int currentBlock = 0;
@@ -212,8 +212,10 @@ namespace RFExporter.UI.Data
             return Task.CompletedTask;
         }
 
-        public Task Start(double start, double end, double step)
+        public Task Start(double start, double end, double step, int samples)
         {
+            sampleCount = samples;
+
             HasCompleteScan = false;
 
             double currentStartFrequency = start;
