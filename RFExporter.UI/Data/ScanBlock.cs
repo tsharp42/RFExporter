@@ -22,6 +22,14 @@ namespace RFExporter.UI.Data
        
         public BlockStatus Status;
 
+        public ScanData[] ScanData
+        { 
+            get
+            {
+                return GetScanData();
+            }
+        }
+
         public float[] Averaged 
         {
             get
@@ -35,6 +43,25 @@ namespace RFExporter.UI.Data
             {
                 return GetFrequencies();
             }
+        }
+
+        private ScanData[] GetScanData()
+        {
+            float[] Averaged = GetAveraged();
+            double[] Frequencies = GetFrequencies();
+
+            List<ScanData> scanData = new List<ScanData>();
+
+            for(int i = 0; i < Frequencies.Length; i++)
+            {
+                scanData.Add(new Data.ScanData()
+                {
+                    AverageAmplitudeDBM = Averaged[i],
+                    Frequency = Frequencies[i]
+                });
+            }
+
+            return scanData.ToArray();
         }
 
         private double[] GetFrequencies()
