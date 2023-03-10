@@ -4,7 +4,7 @@ VisualStudioVersion = 17.0.31611.283
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RFExporter.UI", "RFExporter.UI\RFExporter.UI.csproj", "{C3D3A35B-2050-4C6B-8C0F-87E42ED8B407}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RFExplorerNET.RFExplorerCommunicator", "..\RFExplorerNET\RFExplorerNET.RFExplorerCommunicator\RFExplorerNET.RFExplorerCommunicator.csproj", "{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RFExplorerNET.RFExplorerCommunicator", "RFExplorerNET.RFExplorerCommunicator\RFExplorerNET.RFExplorerCommunicator.csproj", "{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

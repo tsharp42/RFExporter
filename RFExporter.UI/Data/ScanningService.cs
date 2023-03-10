@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RFExplorerNET.RFExplorerCommunicator;
+using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
@@ -15,9 +16,34 @@ namespace RFExporter.UI.Data
         private RFExplorerNET.RFExplorerCommunicator.RFECommunicator rfe;
         private CancellationTokenSource cancellationToken;
 
+        public bool IsConnecting { get; private set; }
         public bool IsConnected { get; private set; }
         public bool IsScanning { get; private set; }
         public bool HasCompleteScan { get; private set; }
+
+        private bool IsReady = false;
+        private bool collectingData = false;
+        private int sampleCount = 10;
+
+        public List<ScanBlock> ScanBlocks = new List<ScanBlock>();
+        private int currentBlock = 0;
+
+        public int TotalBlocks
+        { 
+            get
+            {
+                return ScanBlocks.Count();
+            }
+        }
+        public int ScannedBlocks 
+        {  
+            get
+            {
+                return ScanBlocks.Count(b => b.Status == ScanBlock.BlockStatus.Scanned);
+            }
+        }
+
+        private List<float[]> AmplitudeData = new List<float[]>();
 
         // Device Info
         public string DeviceFirmware { get; private set; }
@@ -57,27 +83,74 @@ namespace RFExporter.UI.Data
             WriteLog("Stopping Polling");
         }
 
-        public Task Connect()
+        public Task Connect(string port)
         {
             WriteLog("Connecting...");
-
+            IsConnecting = true;
 
             rfe = new RFExplorerNET.RFExplorerCommunicator.RFECommunicator(true);
-            rfe.ConnectPort("COM8", 500000);
+            rfe.ConnectPort(port, 500000);
 
             // Spin off a thread to watch for serial data
             cancellationToken = new CancellationTokenSource();
             new Task(() => PollingTask(), cancellationToken.Token, TaskCreationOptions.LongRunning).Start();
-
-            
+        
             // Set up events
             rfe.DeviceReset += Rfe_DeviceReset;
             rfe.ReceivedConfigurationDataEvent += Rfe_ReceivedConfigurationDataEvent;
+            rfe.UpdateDataEvent += Rfe_UpdateDataEvent;
 
             WriteLog("Sending Reset...");
             rfe.SendCommand("r");
 
             return Task.CompletedTask;
+        }
+
+        private void Rfe_UpdateDataEvent(object sender, EventArgs e)
+        {
+
+            if (IsScanning && collectingData)
+            {
+                // Get the sweep data object
+                RFESweepData sweepData = rfe.SweepData.GetData(rfe.SweepData.Count - 1);
+
+                // Sanity check that this scan data is from the range requested
+                if (
+                    Math.Round(ScanBlocks[currentBlock].StartFrequency) ==
+                    Math.Round(sweepData.StartFrequencyMHZ)
+                    )
+                {
+                    // Build the amplitude data
+                    List<float> ampData = new List<float>();
+                    for (ushort p = 0; p < sweepData.TotalSteps - 1; p++)
+                    {
+                        ampData.Add(sweepData.GetAmplitudeDBM(p));
+                    }
+
+                    // Add it to the block data
+                    ScanBlocks[currentBlock].AmplitudeData.Add(ampData.ToArray());
+
+                    // If we have enough scans, move on
+                    if(ScanBlocks[currentBlock].AmplitudeData.Count >= sampleCount)
+                    {
+                        ScanBlocks[currentBlock].Status = ScanBlock.BlockStatus.Scanned;
+                        WriteLog("Block " + currentBlock + " complete");
+
+                        WriteLog("Count: " + ScanBlocks.Count);
+                        // Complete scan
+                        if (currentBlock >= ScanBlocks.Count - 1)
+                        {
+                            WriteLog("Scan Complete");
+                            IsScanning = false;
+                            collectingData = false;
+                            HasCompleteScan = true;
+                        } else {
+                            currentBlock++;
+                            RangeAndScanBlock(currentBlock);
+                        }
+                    }
+                }
+            }
         }
 
         private void Rfe_DeviceReset(object sender, EventArgs e)
@@ -92,12 +165,12 @@ namespace RFExporter.UI.Data
             }
             WriteLog("Connected");
             WriteLog("Requesting Config");
-
-            
+          
             rfe.SendCommand_RequestConfigData();
 
+            IsReady = true;
             IsConnected = true;
-
+            IsConnecting = false;
         }
 
         private void Rfe_ReceivedConfigurationDataEvent(object sender, EventArgs e)
@@ -116,17 +189,56 @@ namespace RFExporter.UI.Data
                 return Task.CompletedTask;
             }
 
+            rfe.ClosePort();
+            rfe.Close();
+
             WriteLog("Disconnecting...");
 
             IsConnected = false;
+            IsReady = false;
             return Task.CompletedTask;
         }
 
-        public Task Start()
+        public Task Start(double start, double end, double step)
         {
-            WriteLog("Starting Scan");
+            HasCompleteScan = false;
+
+            double currentStartFrequency = start;
+
+            // Work out the blocks for scanning
+            ScanBlocks = new List<ScanBlock>();
+            while(currentStartFrequency < end)
+            {
+                ScanBlocks.Add(new ScanBlock()
+                {
+                    StartFrequency = currentStartFrequency,
+                    EndFrequency = currentStartFrequency + step
+                });
+
+                currentStartFrequency += step;
+            }
+
+         
+            // Set the scanning block and start the scan
             IsScanning = true;
+
+            RangeAndScanBlock(0);
+
             return Task.CompletedTask;
+        }
+
+        private void RangeAndScanBlock(int block)
+        {
+            currentBlock = block;
+
+            rfe.UpdateDeviceConfig(
+                ScanBlocks[block].StartFrequency,
+                ScanBlocks[block].EndFrequency);
+
+            ScanBlocks[block].AmplitudeData.Clear();
+            ScanBlocks[block].Status = ScanBlock.BlockStatus.InProgress;
+
+            collectingData = true;
         }
 
         public Task Stop()

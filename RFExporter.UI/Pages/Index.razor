@@ -7,11 +7,16 @@
     <div class="container-fluid justify-content-start">
 
         <div class="d-flex">
-            @if(scanningService.IsConnected)
+            @if(scanningService.IsConnecting)
             {
-                <button @onclick="scanningService.Disconnect" class="btn btn-outline-danger me-2 mb-2" type="button">Disconnect</button>
+                <button class="btn btn-outline-success me-2 mb-2" type="button">Connecting...</button>
             }else{
-                <button @onclick="scanningService.Connect" class="btn btn-outline-success me-2 mb-2" type="button">Connect</button>
+                @if(scanningService.IsConnected)
+                {
+                    <button @onclick="scanningService.Disconnect" class="btn btn-outline-danger me-2 mb-2" type="button">Disconnect</button>
+                }else{
+                    <button @onclick="Connect" class="btn btn-outline-success me-2 mb-2" type="button">Connect</button>
+                }
             }
 
             @if(scanningService.IsConnected)
@@ -22,18 +27,20 @@
                 }
                 else
                 {
-                    <button @onclick="scanningService.Start" class="btn btn-success me-2 mb-2" type="button">Start Scan</button>
+                    <button @onclick="StartScan" class="btn btn-success me-2 mb-2" type="button">Start Scan</button>
                 }
             }
  
-
-            <button class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
+            @if (scanningService.HasCompleteScan)
+            {
+                <button class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
+            }
         </div>
 
         <div class="d-flex" style="width: 100%">
             <div class="input-group me-2" style="flex-basis:25%">
                 <span class="input-group-text">Port</span>
-                <select class="form-select" aria-label="Serial Port Selection">
+                <select @bind="PortName" class="form-select" aria-label="Serial Port Selection">
                     @foreach(var port in AvailablePorts)
                     {
                         <option value="@port">@port</option>
@@ -43,19 +50,19 @@
 
             <div class="input-group me-2 " style="flex-basis:25%">
                 <span class="input-group-text">Start</span>
-                <input type="text" class="form-control" placeholder="Start Frequency" aria-label="Start Frequency" aria-describedby="basic-addon1" value="500.000">
+                <input @bind="StartFrequency" type="text" class="form-control" placeholder="Start Frequency" aria-label="Start Frequency" aria-describedby="basic-addon1">
                 <span class="input-group-text" id="basic-addon1">MHz</span>
             </div>
 
             <div class="input-group me-2" style="flex-basis:25%">
                 <span class="input-group-text">End</span>
-                <input type="text" class="form-control" placeholder="End Frequency" aria-label="End Frequency" aria-describedby="basic-addon1" value="880.000">
+                <input @bind="EndFrequency" type="text" class="form-control" placeholder="End Frequency" aria-label="End Frequency" aria-describedby="basic-addon1">
                 <span class="input-group-text" id="basic-addon1">MHz</span>
             </div>
 
             <div class="input-group" style="flex-basis:25%">
                 <span class="input-group-text">Width</span>
-                <input type="text" class="form-control" placeholder="Width" aria-label="Width" aria-describedby="basic-addon1" value="2.000">
+                <input @bind="Width" type="text" class="form-control" placeholder="Width" aria-label="Width" aria-describedby="basic-addon1" >
                 <span class="input-group-text" id="basic-addon1">MHz</span>
             </div>
 
@@ -89,14 +96,58 @@
                     </div>
                     <div class="card-body">
                         <pre class="log-output">
-                            @foreach(var logline in scanningService.Log)
+
+                            @for(int l = scanningService.Log.Count-1; l > 0; l--)
                             {
-@logline @Environment.NewLine                                
+@scanningService.Log[l] @Environment.NewLine                                
                             }
                         </pre>
                     </div>
                 </div>
             </div>
+
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        Blocks [@scanningService.ScannedBlocks/@scanningService.TotalBlocks]
+                    </div>
+                    <!-- <div class="card-body"> -->
+                        <table class="table table-bordered table-sm card-body">
+                            <thead>
+                                <tr>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach(var block in scanningService.ScanBlocks)
+                                {
+                                    <tr>
+                                        <td>@block.StartFrequency</td>
+                                        <td>@block.EndFrequency</td>
+                                        <td>
+                                            @if(block.Status == ScanBlock.BlockStatus.Unscanned)
+                                            {
+                                                <span class="badge bg-danger">Unscanned [@block.AmplitudeData.Count]</span>
+                                            }
+                                            @if (block.Status == ScanBlock.BlockStatus.InProgress)
+                                            {
+                                                <span class="badge bg-info">In Progress [@block.AmplitudeData.Count]</span>
+                                            }
+                                            @if (block.Status == ScanBlock.BlockStatus.Scanned)
+                                            {
+                                                <span class="badge bg-success">Scanned [@block.AmplitudeData.Count]</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    <!-- </div> -->
+                </div>
+            </div>
+
             <div class="col">
                 <div class="card">
                     <div class="card-header">
@@ -122,6 +173,8 @@
                     </div>
                 </div>
             </div>
+
+
         </div>
 
     </div>
@@ -132,9 +185,30 @@
 @code {
     private string[] AvailablePorts;
 
+    private double StartFrequency { get; set; } = 600.000;
+    private double EndFrequency { get; set; } = 900.000;
+    private double Width { get; set; } = 2.000;
+
+    private string PortName { get; set; } = "---";
+
     protected override async Task OnInitializedAsync()
     {
         AvailablePorts = await scanningService.GetAvailablePorts();
+
+        if(AvailablePorts.Length >0)
+        {
+            PortName = AvailablePorts[0];
+        }
+    }
+
+    async Task StartScan()
+    {
+        await scanningService.Start(StartFrequency, EndFrequency, Width);
+    }
+
+    async Task Connect()
+    {
+        await scanningService.Connect(PortName);
     }
 
     // Timer to refresh data on this page every second
