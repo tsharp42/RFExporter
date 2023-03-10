@@ -61,6 +61,19 @@ namespace RFExporter.UI.Data
             WriteLog("Scanning service initialised");
         }
 
+        public string GetCSVData()
+        {
+            string output = "";
+            foreach(var sb in ScanBlocks)
+            {
+                foreach(var sd in sb.ScanData)
+                {
+                    output += sd.Frequency.ToString() + "," + sd.AverageAmplitudeDBM.ToString() + Environment.NewLine;
+                }
+            }    
+            return output;
+        }
+
         public Task<string[]> GetAvailablePorts()
         {
             WriteLog("Finding available ports");

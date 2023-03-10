@@ -47,6 +47,7 @@ namespace RFExporter.UI.Data
 
         private ScanData[] GetScanData()
         {
+
             float[] Averaged = GetAveraged();
             double[] Frequencies = GetFrequencies();
 
@@ -66,6 +67,11 @@ namespace RFExporter.UI.Data
 
         private double[] GetFrequencies()
         {
+            if (AmplitudeData.Count < 1)
+            {
+                return new double[0];
+            }
+
             List<double> frequencyList = new List<double>();
             double step = (EndFrequency - StartFrequency) / AmplitudeData[0].Length;
             for (int f = 0; f < AmplitudeData[0].Length - 1; f++)
@@ -78,6 +84,11 @@ namespace RFExporter.UI.Data
 
         private float[] GetAveraged()
         {
+            if(AmplitudeData.Count < 1)
+            {
+                return new float[0];
+            }
+
             float[] buffer = new float[AmplitudeData[0].Length];
 
             // Add each of the values into the buffer

@@ -1,5 +1,8 @@
 ﻿@page "/"
+@using CommunityToolkit.Maui.Alerts;
+@using CommunityToolkit.Maui.Storage;
 @using RFExporter.UI.Data;
+@using System.Text;
 
 @inject ScanningService scanningService;
 
@@ -33,7 +36,7 @@
  
             @if (scanningService.HasCompleteScan)
             {
-                <button class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
+                <button @onclick="SaveFile" class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
             }
         </div>
 
@@ -74,20 +77,6 @@
 
  <main role="main">
     <div class="container-fluid">
-
-        <div class="row mb-2">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                        Chart
-                    </div>
-                    <div class="card-body">
-                        Scanning chart will go here
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="row mb-2">
             <div class="col">
                 <div class="card">
@@ -198,6 +187,20 @@
         if(AvailablePorts.Length >0)
         {
             PortName = AvailablePorts[0];
+        }
+    }
+
+    async Task SaveFile()
+    {
+        using var stream = new MemoryStream(Encoding.Default.GetBytes(scanningService.GetCSVData()));
+        var fileSaverResult = await FileSaver.Default.SaveAsync("scan-data.csv", stream, CancellationToken.None);
+        if (fileSaverResult.IsSuccessful)
+        {
+            await Toast.Make($"The file was saved successfully to location: {fileSaverResult.FilePath}").Show();
+        }
+        else
+        {
+            await Toast.Make($"The file was not saved successfully with error: {fileSaverResult.Exception.Message}").Show();
         }
     }
 
