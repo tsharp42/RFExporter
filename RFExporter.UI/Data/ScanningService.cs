@@ -16,12 +16,15 @@ namespace RFExporter.UI.Data
         private RFExplorerNET.RFExplorerCommunicator.RFECommunicator rfe;
         private CancellationTokenSource cancellationToken;
 
-        public bool IsConnecting { get; private set; }
-        public bool IsConnected { get; private set; }
-        public bool IsScanning { get; private set; }
-        public bool HasCompleteScan { get; private set; }
+        //public bool IsConnecting { get; private set; }
+        //public bool IsConnected { get; private set; }
+        //public bool IsScanning { get; private set; }
+        //public bool HasCompleteScan { get; private set; }
 
-        private bool IsReady = false;
+        //private bool IsReady = false;
+
+        public ScanningStatus Status { get; private set; }
+        
         private bool collectingData = false;
         private int sampleCount = 2;
 
@@ -43,6 +46,26 @@ namespace RFExporter.UI.Data
             }
         }
 
+        public int TotalSamples
+        {
+            get
+            {
+                return ScanBlocks.Count * sampleCount;
+            }
+        }
+        public int ScannedSamples
+        {
+            get
+            {
+                int scannedSamples = 0;
+                // Only scanned or in progress count
+                foreach (var block in ScanBlocks.FindAll(p => p.Status == ScanBlock.BlockStatus.Scanned || p.Status == ScanBlock.BlockStatus.InProgress)) {
+                    scannedSamples += block.AmplitudeData.Count();
+                }
+                return scannedSamples;
+            }
+        }
+
         private List<float[]> AmplitudeData = new List<float[]>();
 
         // Device Info
@@ -54,9 +77,7 @@ namespace RFExporter.UI.Data
         { 
             Log = new List<string>();
 
-            IsConnected = false;
-            IsScanning = false;
-            HasCompleteScan = false;
+            Status = ScanningStatus.Idle;
 
             WriteLog("Scanning service initialised");
         }
@@ -76,6 +97,7 @@ namespace RFExporter.UI.Data
 
         public Task<string[]> GetAvailablePorts()
         {
+            // TOOD: Any way to identify ports provided by an RFE?
             WriteLog("Finding available ports");
             string[] ports = SerialPort.GetPortNames();
 
@@ -99,7 +121,7 @@ namespace RFExporter.UI.Data
         public Task Connect(string port)
         {
             WriteLog("Connecting...");
-            IsConnecting = true;
+            Status = ScanningStatus.Connecting;
 
             rfe = new RFExplorerNET.RFExplorerCommunicator.RFECommunicator(true);
             rfe.ConnectPort(port, 500000);
@@ -122,12 +144,13 @@ namespace RFExporter.UI.Data
         private void Rfe_UpdateDataEvent(object sender, EventArgs e)
         {
 
-            if (IsScanning && collectingData)
+            if (Status == ScanningStatus.Scanning && collectingData)
             {
-                // Get the sweep data object
+                // Get the latest sweep data object
                 RFESweepData sweepData = rfe.SweepData.GetData(rfe.SweepData.Count - 1);
 
-                // Sanity check that this scan data is from the range requested
+                // Sanity check that this scan data is from the range currently
+                // being scanned, this just checks the start frequency
                 if (
                     Math.Round(ScanBlocks[currentBlock].StartFrequency) ==
                     Math.Round(sweepData.StartFrequencyMHZ)
@@ -140,23 +163,21 @@ namespace RFExporter.UI.Data
                         ampData.Add(sweepData.GetAmplitudeDBM(p));
                     }
 
-                    // Add it to the block data
+                    // Add it to the block data, AmplitudeData holds multiple samples for averaging
                     ScanBlocks[currentBlock].AmplitudeData.Add(ampData.ToArray());
 
-                    // If we have enough scans, move on
+                    // Keep scanning this block until the required number of samples
                     if(ScanBlocks[currentBlock].AmplitudeData.Count >= sampleCount)
                     {
+                        // We're done with this block, mark as complete and move
+                        // to the next one or complete the scan
                         ScanBlocks[currentBlock].Status = ScanBlock.BlockStatus.Scanned;
                         WriteLog("Block " + currentBlock + " complete");
 
-                        WriteLog("Count: " + ScanBlocks.Count);
-                        // Complete scan
                         if (currentBlock >= ScanBlocks.Count - 1)
                         {
                             WriteLog("Scan Complete");
-                            IsScanning = false;
-                            collectingData = false;
-                            HasCompleteScan = true;
+                            Status = ScanningStatus.ScanComplete;
                         } else {
                             currentBlock++;
                             RangeAndScanBlock(currentBlock);
@@ -168,10 +189,13 @@ namespace RFExporter.UI.Data
 
         private void Rfe_DeviceReset(object sender, EventArgs e)
         {
+            // The only time this should be received is just after
+            // the initial connection
             WriteLog("Received Reset ACK");
             WriteLog("Waiting for boot to complete...");
-            // Wait for boot
-            for (int i = 10; i > 0; i--)
+
+            // Wait for boot, ~4 seconds
+            for (int i = 5; i > 0; i--)
             {
                 Thread.Sleep(1000);
                 WriteLog(i.ToString() + "...");
@@ -179,24 +203,31 @@ namespace RFExporter.UI.Data
             WriteLog("Connected");
             WriteLog("Requesting Config");
           
+            // Once config is received the RFE is ready for use.
+            Status = ScanningStatus.Connected;
             rfe.SendCommand_RequestConfigData();
-
-            IsReady = true;
-            IsConnected = true;
-            IsConnecting = false;
+           
         }
 
         private void Rfe_ReceivedConfigurationDataEvent(object sender, EventArgs e)
         {
-            WriteLog("Got Config Data");
+            // Grab some details about the device
             DeviceSerialNumber = rfe.SerialNumber;
             DeviceModel = rfe.ActiveModel.ToString();
             DeviceFirmware = rfe.FullModelText;
+
+            // If the configuration data was received during
+            // the connection phase then we are now ready.
+            if(Status == ScanningStatus.Connected)
+            {
+                WriteLog("Got Config Data, Ready.");
+                Status = ScanningStatus.ConnectedAndReady;
+            }
         }
 
         public Task Disconnect()
         {
-            if(IsScanning)
+            if(Status == ScanningStatus.Scanning)
             {
                 WriteLog("Can't disconnect, please stop the scan");
                 return Task.CompletedTask;
@@ -207,18 +238,22 @@ namespace RFExporter.UI.Data
 
             WriteLog("Disconnecting...");
 
-            IsConnected = false;
-            IsReady = false;
+            Status = ScanningStatus.Idle;
+
             return Task.CompletedTask;
         }
 
         public Task Start(double start, double end, double step, int samples)
         {
+            if(!(Status == ScanningStatus.ConnectedAndReady || Status == ScanningStatus.ScanComplete))
+            {
+                WriteLog("Not ConnectedAndReady or at ScanComplete, can't start scan");
+                return Task.CompletedTask;
+            }
+
             sampleCount = samples;
-
-            HasCompleteScan = false;
-
             double currentStartFrequency = start;
+
 
             // Work out the blocks for scanning
             ScanBlocks = new List<ScanBlock>();
@@ -233,10 +268,8 @@ namespace RFExporter.UI.Data
                 currentStartFrequency += step;
             }
 
-         
             // Set the scanning block and start the scan
-            IsScanning = true;
-
+            Status = ScanningStatus.Scanning;
             RangeAndScanBlock(0);
 
             return Task.CompletedTask;
@@ -244,22 +277,26 @@ namespace RFExporter.UI.Data
 
         private void RangeAndScanBlock(int block)
         {
+            // Set the currently active block
             currentBlock = block;
 
+            // Retune the RFExplorer to this block
             rfe.UpdateDeviceConfig(
                 ScanBlocks[block].StartFrequency,
                 ScanBlocks[block].EndFrequency);
 
+            // Clear all pending sweep data and mark the block as in progress
             ScanBlocks[block].AmplitudeData.Clear();
             ScanBlocks[block].Status = ScanBlock.BlockStatus.InProgress;
 
+            // Control will now hand over to the UpdateDataEvent
             collectingData = true;
         }
 
         public Task Stop()
         {
             WriteLog("Stopping Scan");
-            IsScanning = false;
+            Status = ScanningStatus.ConnectedAndReady;
             return Task.CompletedTask;
         }
 
@@ -269,6 +306,16 @@ namespace RFExporter.UI.Data
                 Log.RemoveAt(0);
 
             Log.Add(message);
+        }
+
+        public enum ScanningStatus
+        {
+            Idle,
+            Connecting,
+            Connected,
+            ConnectedAndReady,
+            Scanning,
+            ScanComplete
         }
     }
 }

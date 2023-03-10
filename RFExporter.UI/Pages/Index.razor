@@ -10,38 +10,44 @@
     <div class="container-fluid justify-content-start">
 
         <div class="d-flex">
-            @if(scanningService.IsConnecting)
+            @if(scanningService.Status == ScanningService.ScanningStatus.Connecting)
             {
                 <button class="btn btn-outline-success me-2 mb-2" type="button">Connecting...</button>
-            }else{
-                @if(scanningService.IsConnected)
-                {
-                    <button @onclick="scanningService.Disconnect" class="btn btn-outline-danger me-2 mb-2" type="button">Disconnect</button>
-                }else{
-                    <button @onclick="Connect" class="btn btn-outline-success me-2 mb-2" type="button">Connect</button>
-                }
+            } 
+            @if(
+            scanningService.Status == ScanningService.ScanningStatus.Connected ||
+            scanningService.Status == ScanningService.ScanningStatus.ConnectedAndReady || 
+            scanningService.Status == ScanningService.ScanningStatus.ScanComplete)
+            {
+                <button @onclick="scanningService.Disconnect" class="btn btn-outline-danger me-2 mb-2" type="button">Disconnect</button>
+            }
+            @if(scanningService.Status == ScanningService.ScanningStatus.Idle){
+                <button @onclick="Connect" class="btn btn-outline-success me-2 mb-2" type="button">Connect</button>
+            }
+            
+
+            @if (scanningService.Status == ScanningService.ScanningStatus.ConnectedAndReady || scanningService.Status == ScanningService.ScanningStatus.ScanComplete)
+            {
+                <button @onclick="StartScan" class="btn btn-success me-2 mb-2" type="button">Start Scan</button>
+            }
+            @if(scanningService.Status == ScanningService.ScanningStatus.Scanning)
+            {
+                <button @onclick="scanningService.Stop" class="btn btn-danger me-2 mb-2" type="button">Stop Scan</button>
             }
 
-            @if(scanningService.IsConnected)
-            {
-                @if(scanningService.IsScanning)
-                {
-                    <button @onclick="scanningService.Stop" class="btn btn-danger me-2 mb-2" type="button">Stop Scan</button>
-                }
-                else
-                {
-                    <button @onclick="StartScan" class="btn btn-success me-2 mb-2" type="button">Start Scan</button>
-                }
-            }
  
-            @if (scanningService.HasCompleteScan)
+            @if (scanningService.Status == ScanningService.ScanningStatus.ScanComplete)
             {
                 <button @onclick="SaveFile" class="btn btn-outline-info me-2 mb-2" type="button">SAVE</button>
             }
         </div>
 
 
-        @if(!scanningService.IsScanning)
+        @if(
+        scanningService.Status == ScanningService.ScanningStatus.Idle ||
+        scanningService.Status == ScanningService.ScanningStatus.Connected ||
+        scanningService.Status == ScanningService.ScanningStatus.ConnectedAndReady ||
+        scanningService.Status == ScanningService.ScanningStatus.ScanComplete)
         {
             <div class="d-flex" style="width: 100%">
                 <div class="input-group me-2" style="flex-basis:20%">
@@ -85,13 +91,15 @@
  <main role="main">
     <div class="container-fluid">
 
-        @if(scanningService.IsScanning)
+        @if(
+            scanningService.Status == ScanningService.ScanningStatus.Scanning ||
+            scanningService.Status == ScanningService.ScanningStatus.ScanComplete)
         {
             <div class="row mb-2">
                 <div class="col">
                     <div class="progress" style="height: 32px;">
-                        <div class="progress-bar" role="progressbar" style="width: @(((float)scanningService.ScannedBlocks / (float)scanningService.TotalBlocks)*100)%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                            @scanningService.ScannedBlocks/@scanningService.TotalBlocks
+                        <div class="progress-bar" role="progressbar" style="width: @(((float)scanningService.ScannedSamples / (float)scanningService.TotalSamples)*100)%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+                            @scanningService.ScannedSamples/@scanningService.TotalSamples
                         </div>
                     </div>
                 </div>
@@ -178,6 +186,10 @@
                                 <tr>
                                     <th>Serial</th>
                                     <td>@scanningService.DeviceSerialNumber</td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>@scanningService.Status</td>
                                 </tr>
                             </tbody>
                         </table>
