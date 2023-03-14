@@ -23,6 +23,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore RFExporter.CommandLine
     - name: Build
-      run: dotnet build --configuration Release --no-restore RFExporter.CommandLine
-    - name: Build
+      run: dotnet build --configuration Release --no-restore --runtime win10-x64 RFExporter.CommandLine
+    - name: Publish
       run: dotnet publish --configuration Release RFExporter.CommandLine
