@@ -24,8 +24,6 @@ jobs:
       run: dotnet restore RFExporter.CommandLine
     - name: Build
       run: dotnet build --configuration Release --no-restore --runtime win10-x64 --no-self-contained RFExporter.CommandLine
-    - name: Publish
-      run: dotnet publish --configuration Release RFExporter.CommandLine
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
       with:
