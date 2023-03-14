@@ -6,6 +6,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RFExporter.UI", "RFExporter
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RFExplorerNET.RFExplorerCommunicator", "RFExplorerNET.RFExplorerCommunicator\RFExplorerNET.RFExplorerCommunicator.csproj", "{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RFExporter.CommandLine", "RFExporter.CommandLine\RFExporter.CommandLine.csproj", "{FC93FCBB-D351-4775-85C1-B5FDEC597A48}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RFExporter.Data", "RFExporter.Data\RFExporter.Data.csproj", "{3A829BE3-B622-4076-954D-9870EF9B5D84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,12 +26,20 @@ Global
 		{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2AED5B6B-2927-4CEC-AB2F-2E9D2BA9C284}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC93FCBB-D351-4775-85C1-B5FDEC597A48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC93FCBB-D351-4775-85C1-B5FDEC597A48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC93FCBB-D351-4775-85C1-B5FDEC597A48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC93FCBB-D351-4775-85C1-B5FDEC597A48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A829BE3-B622-4076-954D-9870EF9B5D84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A829BE3-B622-4076-954D-9870EF9B5D84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A829BE3-B622-4076-954D-9870EF9B5D84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A829BE3-B622-4076-954D-9870EF9B5D84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		        SolutionGuid = {61F7FB11-1E47-470C-91E2-47F8143E1572}
 		SolutionGuid = {DC0E29AA-8DE9-484D-95E8-F2FCEAC774C6}
+		        SolutionGuid = {61F7FB11-1E47-470C-91E2-47F8143E1572}
 	EndGlobalSection
 EndGlobal

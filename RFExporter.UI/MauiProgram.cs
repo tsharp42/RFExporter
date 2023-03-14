@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
-using RFExporter.UI.Data;
+using RFExporter.Data;
 using CommunityToolkit.Maui;
 
 namespace RFExporter.UI;

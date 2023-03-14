@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RFExporter.UI.Data
+namespace RFExporter.Data
 {
     public class ScanningService
     {

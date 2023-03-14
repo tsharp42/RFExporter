@@ -29,6 +29,9 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+
+        <!-- https://stackoverflow.com/questions/73718305/easiest-way-to-launch-a-maui-app-exe-on-windows -->
+        <WindowsPackageType>None</WindowsPackageType>
     </PropertyGroup>
 
     <ItemGroup>
@@ -56,7 +59,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\RFExplorerNET.RFExplorerCommunicator\RFExplorerNET.RFExplorerCommunicator.csproj" />
+      <ProjectReference Include="..\RFExporter.Data\RFExporter.Data.csproj" />
     </ItemGroup>
 
 </Project>
