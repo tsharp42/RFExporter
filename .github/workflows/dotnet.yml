@@ -23,6 +23,12 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore RFExporter.CommandLine
     - name: Build
-      run: dotnet build --configuration Release --no-restore --runtime win10-x64 RFExporter.CommandLine
+      run: dotnet build --configuration Release --no-restore --runtime win10-x64 --self-contained RFExporter.CommandLine
     - name: Publish
       run: dotnet publish --configuration Release RFExporter.CommandLine
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: RFExporter.CommandLine
+        path: /home/runner/work/RFExporter/RFExporter/RFExporter.CommandLine/bin/Release/net7.0/**
+        if-no-files-found: error
